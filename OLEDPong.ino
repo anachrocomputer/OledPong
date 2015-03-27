@@ -82,10 +82,7 @@
 unsigned char Frame[MAXROWS][MAXX];
 
 void setup (void)
-{
-  int r, c;
-  long int before, after;
-  
+{  
   Serial.begin (9600);
   
   Serial.println ("OLED 128x64 Pong");
@@ -131,9 +128,10 @@ void loop (void)
     
     start = millis ();
     
-    while (digitalRead (SWPIN) == HIGH)
+    while (digitalRead (SWPIN) == HIGH) {
       if ((millis () - start) > 2000)
         break;
+    }
   } while (digitalRead (SWPIN) == HIGH);
   
   playPong ();
@@ -156,7 +154,7 @@ void playPong (void)
       serve = AI;
       ascore++;
     }
-  } while ((pscore < 15) && (ascore < 15));
+  } while ((pscore < 15) && (ascore < 15)); // First player to score 15 wins
   
   delay (1000);
   
@@ -172,6 +170,9 @@ void playPong (void)
   delay (1500);
 }
 
+
+/* playOneBall --- run the game for one ball served, played and missed */
+
 int playOneBall (int serve, int pscore, int ascore)
 {
   int baty, aibaty;
@@ -186,9 +187,11 @@ int playOneBall (int serve, int pscore, int ascore)
   bx = CENX * 16;
   by = CENY * 16;
   
+  // Ball velocity vector
   bvx = 0;
   bvy = 0;
   
+  // AI starting position
   aibaty = CENY * 16;
   
   for (frame = 0; winner == 0; frame++) {
@@ -198,7 +201,7 @@ int playOneBall (int serve, int pscore, int ascore)
     // Draw empty playing area (i.e. the net)
     drawBackground ();
 
-    // Get player's position
+    // Get player's position (0..1023)
     baty = analogRead (0);
     
     if (baty < (8 * 16))
@@ -257,6 +260,7 @@ int playOneBall (int serve, int pscore, int ascore)
       bvy = -bvy;
     }
     
+    // Update ball position
     bx += bvx;
     by += bvy;
     
@@ -289,6 +293,8 @@ int playOneBall (int serve, int pscore, int ascore)
   return (winner);
 }
 
+
+/* airightbat --- AI logic for right-hand bat */
 
 int airightbat (int baty, const int bx, const int by, const int bvx, const int py)
 {
@@ -348,7 +354,7 @@ void drawBat (const int x, int y)
 }
 
 
-/* drawBall --- draw the ball in the freamebuffer */
+/* drawBall --- draw the ball in the framebuffer */
 
 void drawBall (int bx, int by)
 {
