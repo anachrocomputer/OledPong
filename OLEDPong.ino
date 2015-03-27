@@ -80,6 +80,11 @@
 
 // The frame buffer, 1024 bytes
 unsigned char Frame[MAXROWS][MAXX];
+int Aibaty;  // AI's bat position (Y co-ord)
+int Pscore;
+int Ascore;
+int AIstate = SHADOW;
+int AIfatigue;
 
 void setup (void)
 {  
@@ -117,9 +122,12 @@ void loop (void)
     case 2:
       textRoundRect2 ("AVOID MISSING BALL", "FOR HIGH SCORE");
       break;
+    case 3:
+      textRoundRect2 ("1st player to score", "15 points WINS");
+      break;
     }
     
-    if (msg == 2)
+    if (msg == 3)
       msg = 0;
     else
       msg++;
@@ -142,25 +150,26 @@ void playPong (void)
 {
   static char over[] = "GAME OVER";
   int serve = PLAYER;
-  int pscore = 0;
-  int ascore = 0;
+  
+  // Scores zero at start
+  Pscore = 0;
+  Ascore = 0;
+  
+  // AI starting position
+  Aibaty = CENY * 16;
   
   do {
-    if (playOneBall (serve, pscore, ascore) == PLAYER) {
+    if (playOneBall (serve) == PLAYER) {
       serve = PLAYER;
-      pscore++;
     }
     else {
       serve = AI;
-      ascore++;
     }
-  } while ((pscore < 15) && (ascore < 15)); // First player to score 15 wins
-  
-  delay (1000);
+  } while ((Pscore < 15) && (Ascore < 15)); // First player to score 15 wins
   
   greyFrame ();
   
-  if (pscore == 15)
+  if (Pscore == 15)
     textRoundRect2 (over, "PLAYER WINS");
   else
     textRoundRect2 (over, "COMPUTER WINS");
@@ -173,9 +182,9 @@ void playPong (void)
 
 /* playOneBall --- run the game for one ball served, played and missed */
 
-int playOneBall (int serve, int pscore, int ascore)
+int playOneBall (int serve)
 {
-  int baty, aibaty;
+  int baty;
   int bx, by;
   boolean in_play;
   int bvx, bvy;
@@ -194,9 +203,6 @@ int playOneBall (int serve, int pscore, int ascore)
   bvy = 0;
   in_play = false; // Not served yet
   
-  // AI starting position
-  aibaty = CENY * 16;
-  
   endframe = 65534;
   
   for (frame = 0; frame < endframe; frame++) {
@@ -213,15 +219,17 @@ int playOneBall (int serve, int pscore, int ascore)
       baty = (MAXY - 8) * 16;
     
     // AI for the right-hand bat
-    aibaty = airightbat (aibaty, bx, by, bvx, baty);
+    Aibaty = airightbat (bx, by, bvx, baty);
 
     // Time to serve the ball?
     if (frame == 25) {
       if (serve == AI) {
+        AIfatigue = 12; // Slightly weary: may miss ball
         bvx = -3 * 16;
         bvy = 8;
       }
       else {
+        AIfatigue = 4;  // Fresh; will always return serve
         bvx = 3 * 16;
         bvy = (baty - (CENY * 16)) / 16;
       }
@@ -232,11 +240,12 @@ int playOneBall (int serve, int pscore, int ascore)
     if (in_play) {
       // Check for ball return
       if ((bx >= ((MAXX - 2) * 16))) {
-        if ((by > (aibaty - (8 * 16))) && (by < (aibaty + (8 * 16)))) {
+        if ((by > (Aibaty - (8 * 16))) && (by < (Aibaty + (8 * 16)))) {
           bvx = -bvx;
+          AIfatigue += 4;
         }
         else {
-          pscore++;  // AI miss
+          Pscore++;  // AI miss
           winner = PLAYER;
           in_play = false;
           endframe = frame + 25u;
@@ -248,7 +257,7 @@ int playOneBall (int serve, int pscore, int ascore)
           bvx = -bvx;
         }
         else {
-          ascore++;  // Player miss
+          Ascore++;  // Player miss
           winner = AI;
           in_play = false;
           endframe = frame + 25u;
@@ -269,12 +278,12 @@ int playOneBall (int serve, int pscore, int ascore)
     drawBackground ();
     
     drawBat (LEFTBAT, baty);
-    drawBat (RIGHTBAT, aibaty);
+    drawBat (RIGHTBAT, Aibaty);
     
     if (in_play)
       drawBall (bx, by);
   
-    drawScores (pscore, ascore);
+    drawScores ();
     
     updscreen ();
     
@@ -295,24 +304,26 @@ int playOneBall (int serve, int pscore, int ascore)
 
 /* airightbat --- AI logic for right-hand bat */
 
-int airightbat (int baty, const int bx, const int by, const int bvx, const int py)
+int airightbat (const int bx, const int by, const int bvx, const int py)
 {
-  static int state = SHADOW;
+  int baty;
+  
+  baty = Aibaty;
   
   if ((bvx > 0) && (bx > (96 * 16))) {
-    baty -= (baty - by) / 12;
+    baty -= (Aibaty - by) / AIfatigue;
   }
   else if (bx < (64 * 16)) {
-    switch (state) {
+    switch (AIstate) {
     case STAY:
       break;
     case CENTRE:
-      baty -= (baty - (CENY * 16)) / 16;
+      baty -= (Aibaty - (CENY * 16)) / 16;
       break;
     case JIGGLE:
       break;
     case SHADOW:
-      baty -= (baty - py) / 16;
+      baty -= (Aibaty - py) / 16;
       break;
     }
   }
@@ -370,14 +381,14 @@ void drawBall (int bx, int by)
 
 /* drawScores --- draw the scores in the framebuffer */
 
-void drawScores (int left, int right)
+void drawScores ()
 {
   char num[4];
   
-  snprintf (num, 4, "%d", left);
+  snprintf (num, 4, "%d", Pscore);
   setText (32, 0, num);
   
-  snprintf (num, 4, "%d", right);
+  snprintf (num, 4, "%d", Ascore);
   setText (96, 0, num);
 }
 
