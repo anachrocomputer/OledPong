@@ -177,8 +177,10 @@ int playOneBall (int serve, int pscore, int ascore)
 {
   int baty, aibaty;
   int bx, by;
+  boolean in_play;
   int bvx, bvy;
   unsigned int frame;
+  unsigned int endframe;
   long int start, now;
   int elapsed;
   int winner = 0;
@@ -190,17 +192,17 @@ int playOneBall (int serve, int pscore, int ascore)
   // Ball velocity vector
   bvx = 0;
   bvy = 0;
+  in_play = false; // Not served yet
   
   // AI starting position
   aibaty = CENY * 16;
   
-  for (frame = 0; winner == 0; frame++) {
+  endframe = 65534;
+  
+  for (frame = 0; frame < endframe; frame++) {
     // Record timer in milliseconds at start of frame cycle
     start = millis ();
     
-    // Draw empty playing area (i.e. the net)
-    drawBackground ();
-
     // Get player's position (0..1023)
     baty = analogRead (0);
     
@@ -210,19 +212,10 @@ int playOneBall (int serve, int pscore, int ascore)
     if (baty > ((MAXY - 8) * 16))
       baty = (MAXY - 8) * 16;
     
-    drawBat (LEFTBAT, baty);
-  
     // AI for the right-hand bat
     aibaty = airightbat (aibaty, bx, by, bvx, baty);
-    
-    drawBat (RIGHTBAT, aibaty);
-    
-    drawBall (bx, by);
-  
-    drawScores (pscore, ascore);
-    
-    updscreen ();
-    
+
+    // Time to serve the ball?
     if (frame == 25) {
       if (serve == AI) {
         bvx = -3 * 16;
@@ -232,37 +225,58 @@ int playOneBall (int serve, int pscore, int ascore)
         bvx = 3 * 16;
         bvy = (baty - (CENY * 16)) / 16;
       }
+      
+      in_play = true;
     }
     
-    // Check for ball return
-    if ((bx >= ((MAXX - 2) * 16))) {
-      if ((by > (aibaty - (8 * 16))) && (by < (aibaty + (8 * 16)))) {
-        bvx = -bvx;
+    if (in_play) {
+      // Check for ball return
+      if ((bx >= ((MAXX - 2) * 16))) {
+        if ((by > (aibaty - (8 * 16))) && (by < (aibaty + (8 * 16)))) {
+          bvx = -bvx;
+        }
+        else {
+          pscore++;  // AI miss
+          winner = PLAYER;
+          in_play = false;
+          endframe = frame + 25u;
+        }
       }
-      else {
-        pscore++;  // AI miss
-        winner = PLAYER;
+     
+      if ((bx <= 0)) {
+        if ((by > (baty - (8 * 16))) && (by < (baty + (8 * 16)))) {
+          bvx = -bvx;
+        }
+        else {
+          ascore++;  // Player miss
+          winner = AI;
+          in_play = false;
+          endframe = frame + 25u;
+        }
       }
-    }
-   
-    if ((bx <= 0)) {
-      if ((by > (baty - (8 * 16))) && (by < (baty + (8 * 16)))) {
-        bvx = -bvx;
+      
+      // Check for bounces off top/bottom
+      if ((by >= ((MAXY - 2) * 16)) || (by <= 0)) {
+        bvy = -bvy;
       }
-      else {
-        ascore++;  // Player miss
-        winner = AI;
-      }
+      
+      // Update ball position
+      bx += bvx;
+      by += bvy;
     }
     
-    // Check for bounces off top/bottom
-    if ((by >= ((MAXY - 2) * 16)) || (by <= 0)) {
-      bvy = -bvy;
-    }
+    // Draw empty playing area (i.e. the net)
+    drawBackground ();
     
-    // Update ball position
-    bx += bvx;
-    by += bvy;
+    drawBat (LEFTBAT, baty);
+    drawBat (RIGHTBAT, aibaty);
+    
+    if (in_play)
+      drawBall (bx, by);
+  
+    drawScores (pscore, ascore);
+    
+    updscreen ();
     
     // Work out timing for this frame
     now = millis ();
@@ -274,21 +288,6 @@ int playOneBall (int serve, int pscore, int ascore)
     if (elapsed < 40)
       delay (40 - elapsed);
   }
-  
-  // Draw final score
-  drawBackground ();
-
-  drawBat (LEFTBAT, baty);
-  
-  drawBat (RIGHTBAT, aibaty);
-  
-  drawBall (bx, by);
-
-  drawScores (pscore, ascore);
-  
-  updscreen ();
-    
-  delay (1000);
   
   return (winner);
 }
