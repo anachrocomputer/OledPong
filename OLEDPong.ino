@@ -1,4 +1,4 @@
-/* N1202Test --- test the 128x64 pixel OLED on Arduino      2015-03-22 */
+/* OLEDPong --- Pong game for 128x64 pixel OLED on Arduino  2015-03-27 */
 /* Copyright (c) 2015 John Honniball */
 
 #include <math.h>
