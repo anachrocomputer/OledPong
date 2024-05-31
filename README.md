@@ -15,7 +15,15 @@ https://web.archive.org/web/20150328062339/http:/ludumdare.com:80/compo/2015/03/
 
 Many implementations of PONG were sent to the MiniLD contest, and mine is here:
 
-https://web.archive.org/web/20150404142251/http:/ludumdare.com/compo/minild-58/?action=preview&uid=13730
+https://web.archive.org/web/20170925070716/http://ludumdare.com/compo/minild-58/?action=preview&uid=13730
+
+Short video of the game in operation, on YouTube here:
+
+https://www.youtube.com/watch?v=ORZMssJ-CQk
+
+## Screenshot ##
+
+![PONG](game1.jpg "PONG")
 
 ## The Display ##
 
